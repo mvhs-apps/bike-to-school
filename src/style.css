@@ -1,0 +1,43 @@
+h1, p {
+  font-family: Lato;
+}
+
+div {
+  height: 100%;
+  width: 100%;
+  text-align: center;
+}
+#left {
+  float: left;
+  width: 45%;
+  margin-left: 3%;
+  margin-right: 3%;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  background-color: lightblue;
+  text-align: center;
+  padding-top: 3%;
+  padding-bottom: 3%;
+}
+#right {
+  float: right;
+  margin-right: 3%;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  width: 45%;
+  background-color: lightblue;
+  text-align: center;
+  padding-top: 3%;
+  padding-bottom: 3%;
+}
+#header {
+  background-color: gold;
+  font-family: 'Arial Black', 'Gadget', 'sans-serif';
+  font-weight: bold;
+}
+
+#main {
+  font-family: Lato;
+  background-color: white;
+  font-weight: 'normal';
+}
