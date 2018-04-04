@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { render } from 'react-dom';
-import firebase from 'firebase.js';
+import firebase from './firebase.js';
 import './style.css';
 
 class App extends Component {
@@ -16,8 +16,10 @@ class App extends Component {
     this.handleName= this.handleName.bind(this);
     this.handleGrade= this.handleGrade.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
-    this.handleReset = this.handleReset.bind(this);
     this.handleEnter = this.handleEnter.bind(this);
+    this.handleSubmitAdd = this.handleSubmitAdd.bind(this);
+    this.handleChangeAdd= this.handleChangeAdd.bind(this);
+    this.clear = this.clear.bind(this);
     this.login = this.login.bind(this);
     this.logout = this.logout.bind(this);
 
@@ -57,48 +59,47 @@ class App extends Component {
         
     });
   }
- componentWillMount() {
+  componentWillMount() {
         
-        console.log("Connecting to firebase");
+    console.log("Connecting to firebase");
 
-        //allow your app to sign in anonomously
-        firebase.auth().signInAnonymously().catch(function(error) {
-            // Handle Errors here.
-            var errorCode = error.code;
-            var errorMessage = error.message;
-            // ...
-        });
+    //allow your app to sign in anonomously
+    firebase.auth().signInAnonymously().catch(function(error) {
+        // Handle Errors here.
+        var errorCode = error.code;
+        var errorMessage = error.message;
+        // ...
+    });
 
-        this.updateStudent();
+    this.updateStudent();
 
-        //Get the student List table of firebase
-        const studentsDB = firebase.database().ref("student");
+    //Get the student List table of firebase
+    const studentsDB = firebase.database().ref("student");
+    
+    const tempstudent = [];
+    const tempStudentList = [];
+    studentsDB.on('value',snapshot => {
+      //Read each item in students
+      //Store it in a temporary array
+      snapshot.forEach(childSnapShot => {
+        //childSnapShot.key is the name of the data
+        //console.log(childSnapShot.key + "" childSnapShot.val() );
+        //childSnapShot.val() is the value of the data
+        const studentInfo = {
+          otherInfo: [],
+        }
+        studentInfo.name = childSnapShot.key;
+        studentInfo.otherInfo = childSnapShot.val();
+
+        tempStudentList.push(studentInfo);
+        tempstudent.push(childSnapShot.val());
         
-        const tempstudent = [];
-        const tempStudentList = [];
-        studentsDB.on('value',snapshot => {
-          //Read each item in students
-          //Store it in a temporary array
-          snapshot.forEach(childSnapShot => {
-            //childSnapShot.key is the name of the data
-            //console.log(childSnapShot.key + "" childSnapShot.val() );
-            //childSnapShot.val() is the value of the data
-            const studentInfo = {
-              name,
-              otherInfo: [],
-            }
-            studentInfo.name = childSnapShot.key;
-            studentInfo.otherInfo = childSnapShot.val();
+      });
 
-            tempStudentList.push(studentInfo);
-            tempstudent.push(childSnapShot.val());
-            
-          });
-
-          this.setState({student: tempstudent, studentList: tempStudentList, isLoading: false });
-          
-        });
-  }
+      this.setState({student: tempstudent, studentList: tempStudentList, isLoading: false });
+      
+    });
+}
   login(){
     //console.log("sign-in");
     //This code will setup the Google login page
@@ -182,39 +183,72 @@ class App extends Component {
     //prevent the page from reloading
     event.preventDefault();
   }
+  handleSubmitAdd(event) {
+    //console.log("adding list ");
+    if( this.state.user != null ){
+      //This is will reference all the information under Shopping List
+      //All user data will be stored under shopping list.
+      //Each item will be tied in with the email of the user.
+      const studentItem = firebase.database().ref("student/");
+
+      //Create an object to store the item information
+      //The item information should contain the name of the item
+      //and the email of the user.  The email is used to identify that
+      //item belongs to the user.
+      const item = {
+        itemName: this.state.itemName,
+        userEmail: this.state.user.email
+      }
+
+      //Push the item object to the database
+      studentItem.push(item);
+    }
+
+    //update list
+    this.updateStudent();
+
+    //reset item name
+    this.setState({itemName: ""});
+
+    //prevent the page from reloading
+    event.preventDefault();
+  }
+  clear(){
+    //console.log("clearing");
+
+    //Go through the shopping list in the state using a for each loop
+    for( const each of this.state.student ){
+      //console.log(each.id);
+      //Get key of the each item and reference it in the firebase database
+      const itemRef = firebase.database().ref("/student/"+each.key);
+      //remove it from the firebase
+      itemRef.remove();
+    }
+
+    //update list
+    this.updateStudent();
+  }
+
   handleEnter() {
     this.updateStudent();
   }
-  handleReset() {
 
-    //reset student list.
-    //console.log("reset");
-    //Get studentList from the DB and remove it
-    const studentDB = firebase.database().ref("student/");
-    studentDB.remove();
-
-    //Add new student List
-    const studentItem = firebase.database().ref("student/");
-    const johnItem = firebase.database().ref("student/John");
-    
-    const items =
-    {
-      student : "John"
-    }
-    
-    studentItem.set(
-      items
-    );
-
-    this.setState({ isLoading: false });
-    this.updateStudent();
-
+  handleChangeAdd(event) {
+    this.setState({ itemName : event.target.value});
+    //console.log("update list");
+    //this.updateList();
   }
-
   render() {
     console.log(this.state.user);
 
-    if(this.state.user == null){
+    if (this.state.isLoading) {
+      return (
+        <div>
+          loading...
+        </div>
+      );
+    } 
+    else if(this.state.user == null){
       return (
         <div>
           Click below to Login with your Google Account <br/><br/>
@@ -223,15 +257,8 @@ class App extends Component {
         </div>
       );
     }
-    else if (this.state.isLoading) {
-      return (
-        <div>
-          loading...
-        </div>
-      );
-    } 
+    
     else {
-
       console.log("User: " + this.state.user);
       
       return (
@@ -239,15 +266,18 @@ class App extends Component {
       <div id="header">
         Bike To School
         <div id="main">
-          <p> Welcome to the Bike to School app! Here you can find a buddy near you to walk or bike to school with.</p>
-          <button onClick={this.handleReset}>Reset List</button>
+          <button onClick={this.logout}>Log Out</button>
+          <br/><br/>
+          Hello {this.state.user.displayName}, you are logged in!
           <br/>
-          <form onSubmit={this.handleSubmit}>
-              Add Student:
-              <input type="text" value={this.state.itemName} onChange={this.handleName} />
-              Grade:
-              <input type="text" value={this.state.itemGrade} onChange={this.handleGrade} />
-          </form>
+          <p> Welcome to the Bike to School app! Here you can find a buddy near you to walk or bike to school with.</p>
+         
+          <br/>
+          Grade:
+          <form onSubmit={this.handleSubmitAdd}> 
+            <input type="text"  value={this.state.itemName} onChange={this.handleChangeAdd}  />
+          </form>  
+          <br />
           <button onClick={this.handleEnter}>Enter</button>
           <br/><br/>
           Students <br/>
@@ -263,6 +293,7 @@ class App extends Component {
             <br/>
             </div>
         )}
+         <button onClick={this.clear}>Clear</button>
       </div>
     );
     }
