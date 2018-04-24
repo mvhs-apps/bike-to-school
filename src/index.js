@@ -13,15 +13,15 @@ class App extends Component {
       user: null
     };
 
-    this.handleName= this.handleName.bind(this);
-    this.handleGrade= this.handleGrade.bind(this);
+    
     this.handleSubmit = this.handleSubmit.bind(this);
-    this.handleEnter = this.handleEnter.bind(this);
     this.handleSubmitAdd = this.handleSubmitAdd.bind(this);
     this.handleChangeAdd= this.handleChangeAdd.bind(this);
     this.clear = this.clear.bind(this);
     this.login = this.login.bind(this);
-    this.logout = this.logout.bind(this);
+    this.handleFirstName= this.handleFirstName.bind(this);
+    this.handleLastName= this.handleLastName.bind(this);
+    this.handleID= this.handleID.bind(this);
 
   }
 
@@ -107,16 +107,7 @@ class App extends Component {
     firebase.auth().signInWithRedirect(provider);
   }
 
-  logout() {
-    //This will sign out of firebase authentication and set
-    //the user variable to null
-    firebase.auth().signOut()
-    .then(() => {
-      this.setState({
-        user: null
-      });
-    });
-  }
+  
   
   updateStudent() {
 
@@ -152,36 +143,86 @@ class App extends Component {
   }
 
   //This is called when your type something
-  handleName(event) {
-    this.setState({ itemName : event.target.value});
+  handleFirstName(event) {
+    this.setState({ FirstName : event.target.value});
   }
 
-  handleGrade(event) {
-    this.setState({ itemGrade : event.target.value});
+  handleLastName(event) {
+    this.setState({ LastName : event.target.value});
+  }
+
+  handleID(event) {
+    this.setState({ ID : event.target.value});
   }
   //This is called when you hit enter
   handleSubmit(event) {
     
+
     //To add an item, you need to specify the key.
-    //In this case, it is new unique number.  We can use the length of the student list as it is the next number in our list.
-    const itemNumber = this.state.student.length;
+    //In this case, it is new unique number.  We can use the length of the Student list as it is the next number in our list.
+    const itemNumber = this.state.studentList.length;
 
     //Add a new key to Student Lists. It will return the new item of that key
-    const studentItem = firebase.database().ref("student/" + itemNumber);
+    const StudentListDB = firebase.database().ref("Student List/" + itemNumber);
+
+    //This has to match your firebase database
+    const aStudent = {
+        FirstName : this.state.FirstName,
+        LastName : this.state.LastName,
+        ID : this.state.ID
+    }
     
-    //Add a value to that key
-    studentItem.set(
-      this.state.itemName
+    
+    //Add a value to the new student to firebase
+    StudentListDB.set(
+      aStudent
     );
 
     //update the screen, and clear out the form
-    this.setState({isLoading : true, itemName: ""});
+    this.setState({
+      isLoading : true, 
+      FirstName: "", 
+      LastName: "",
+      ID: ""
+    });
 
-    //this will download the shopping list from firebase with the update value
-    this.updateStudent();
+    //this will download the Student list from firebase with the update value
+    this.updateStudentList();
     
     //prevent the page from reloading
     event.preventDefault();
+  }
+  updateStudentList() {
+
+    //The following code get a particular table
+    const studentListDB = firebase.database().ref("Student List");
+    
+    //Store content of the database into an array to be used
+    //to set the state later.
+    const studentListTemp = [];
+
+    //Get StudentList from the DB and add it to the local list.
+    studentListDB.on('value', snapshot => {
+      
+      snapshot.forEach(childSnapShot => {
+        //console.log( childSnapShot.key + " : "  + childSnapShot.val());
+  
+        const aStudent = {
+            FirstName : childSnapShot.val().FirstName,
+            LastName : childSnapShot.val().LastName,
+            ID : childSnapShot.val().ID
+        }
+
+        //Add an item object to the StudentListTemp Array
+        studentListTemp.push(aStudent);
+        
+
+      });
+
+      //set the StudentLItemTemp Array to the state StudentList, and load to false
+      this.setState({ studentList: studentListTemp, isLoading: false });
+        
+    });
   }
   handleSubmitAdd(event) {
     //console.log("adding list ");
@@ -229,10 +270,6 @@ class App extends Component {
     this.updateStudent();
   }
 
-  handleEnter() {
-    this.updateStudent();
-  }
-
   handleChangeAdd(event) {
     this.setState({ itemName : event.target.value});
     //console.log("update list");
@@ -273,27 +310,19 @@ class App extends Component {
           <p> Welcome to the Bike to School app! Here you can find a buddy near you to walk or bike to school with.</p>
          
           <br/>
-          Grade:
-          <form onSubmit={this.handleSubmitAdd}> 
-            <input type="text"  value={this.state.itemName} onChange={this.handleChangeAdd}  />
+          <form onSubmit={this.handleSubmit}>
+
+              First Name: <input type="text" value={this.state.FirstName} onChange={this.handleFirstName} /><br/>
+              Last Name: <input type="text" value={this.state.LastName} onChange={this.handleLastName} /><br/>
+              5 Digit Student ID: <input type="text" value={this.state.ID} onChange={this.handleID} /><br/>
+
+              <button type="submit" value="Submit">Submit</button>
           </form>  
           <br />
           <button onClick={this.handleEnter}>Enter</button>
           <br/><br/>
-          Students <br/>
-          { this.state.name } <br/>
           </div>
         </div>
-        { this.state.studentList.map( (item) =>
-            <div>
-            Name: {item.otherInfo.name} <br/>
-            Address: {item.otherInfo.address}<br/>
-            Grade: {item.otherInfo.grade}<br/>
-            Period: {item.otherInfo.firstClass}<br/>
-            <br/>
-            </div>
-        )}
-         <button onClick={this.clear}>Clear</button>
       </div>
     );
     }
