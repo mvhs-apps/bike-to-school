@@ -193,36 +193,46 @@ class App extends Component {
     event.preventDefault();
   }
   updateStudentList() {
+    if( this.state.user != null ){
 
-    //The following code get a particular table
-    const studentListDB = firebase.database().ref("Student List");
-    
-    //Store content of the database into an array to be used
-    //to set the state later.
-    const studentListTemp = [];
+      //Reference the shopping list
+      const studentListDB = firebase.database().ref("student/");
 
-    //Get StudentList from the DB and add it to the local list.
-    studentListDB.on('value', snapshot => {
+      const studentListTemp = [];
+
       
-      snapshot.forEach(childSnapShot => {
-        //console.log( childSnapShot.key + " : "  + childSnapShot.val());
-  
-        const aStudent = {
-            FirstName : childSnapShot.val().FirstName,
-            LastName : childSnapShot.val().LastName,
-            ID : childSnapShot.val().ID
-        }
-
-        //Add an item object to the StudentListTemp Array
-        studentListTemp.push(aStudent);
+      //Get a snaphot of all the items in ShoppingList
+      studentListDB.on('value', (snapshot) => {
         
+        //Go through each item in the Shopping List
+        snapshot.forEach(childSnapShot => {
 
+
+          //console.log(childSnapShot.key + " " + childSnapShot.val().itemName + " " + childSnapShot.val().userEmail )
+
+          //Only get the ones that has the same google userEmail
+          if( childSnapShot.val().userEmail == this.state.user.email ){
+            console.log("adding items");
+
+            //It is important to keep the key with the itemNam as you will need to 
+            //use the key for deletion
+            const item = 
+            {
+              FirstName : childSnapShot.val().FirstName,
+              LastName : childSnapShot.val().LastName,
+              ID : childSnapShot.val().ID
+            }
+            //Add the item object to the shoppingListTemp Array
+            studentListTemp.push(item);
+          }
+          
+
+        });
+        //set the shoppingLItemTemp Array to the state shoppingList, and load to false
+        
+         this.setState({ studentList: studentListTemp });
       });
-
-      //set the StudentLItemTemp Array to the state StudentList, and load to false
-      this.setState({ studentList: studentListTemp, isLoading: false });
-        
-    });
+    }
   }
   handleSubmitAdd(event) {
     //console.log("adding list ");
